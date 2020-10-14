@@ -1,0 +1,14 @@
+This contains all the unique commands we used across all indexes and does not form a recommended starting point. Please read the comments and pick the lines needed for your usecase
+
+| eval alert_title="PA_Test".                                #Set your alert name here
+| eval kill_chain="other".                                   #Set your kill_chain here
+| eval alert_severity=severity                               #Set your alert severity here
+| eval date = strftime(_time, "%Y-%m-%d")                    #This line creates a field called date
+| rename dest_hostname as dest_domain, user as username      #This field helps standardize the context to ensure we use the same field names in each index
+| lookup dhcp.csv src OUTPUT hostname                        #This uses the enrichment file that holds IPs/Hostnames. It matches fields that have the src and outputs the associated hostname. You need to add date here for historical data
+| eval hostname=mvindex(hostname,0)                          #This modifies hostname to only store the latest entry in the dhcp csv
+| eval src=if(isnull(src),placehold,src)                     #This will fill in any any field that is null with the value stored in placehold otherwise it will stay the current stored value
+| lookup hostname_username.csv hostname output username      #This uses the enrichment file that pairs hostname and usernames to add usernames to matching fields based on the hostname
+| fillnull value=unknown                                     #This will fill in any null(empty) fields with the string unknown. This just helps clean up the tables in the dashboard
+| eval dest_domain=if(isnull(dest_domain),"?","unknown")     #This can be used to create a field that may not exist in all logs in an index, but exists in some. It will set those who do not have the field to have it with unknown
+| table  _time, alert_title, kill_chain, alert_severity      #These fields will be the fields in the alert CSV. Ensure this matches for all alerts in an index
