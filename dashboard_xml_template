@@ -1,0 +1,90 @@
+This template should be used to help create your dashboard. Please utilize the comments to decide which elements you want to keep 
+along with what you can modify for your needs.
+
+<form theme="light">                                              <!--You can set your theme as either light or dark here-->
+  <label>Integrated Alert Dashboard</label>                       <!--This is your dashboard title-->
+  <fieldset submitButton="true" autoRun="true">                   <!--This will create a submit button to fill in the below tokens along with running the dashboard with the defaults when you load in-->
+    <input type="time" token="time">                              <!--This will alllow you to set time-->
+      <label></label>
+      <default>
+        <earliest>-7d@d</earliest>                                <!--This will set earliest time to 7 days past from the start of the day-->
+        <latest>now</latest>                                      <!--This sets latest time to now-->
+      </default>
+    </input> 
+  </fieldset>
+  <row>
+    <panel>
+      <title>Searchable Fields</title>                            <!--This will be the title of the panel that shows the fields you can search over-->
+      <input type="text" token="t_alert_title">                   <!--This creates a token that expects text and is referenced by $t_alert_title$-->
+        <label>Alert Title</label>                                <!--This is what will show on the dashboard above the input field-->
+        <prefix>alert_title="</prefix>                            <!--This is what will go before the token value in your queries when using $t_alert_title$-->
+        <suffix>"</suffix>                                        <!--This is what will go after the token value in your queries when using $t_alert_title$-->
+        <default>*</default>                                      <!--This is what your token will initially store without user interaction-->
+      </input>
+      <input type="multiselect" token="t_alert_severity">         <!--This type of token will allow you to create a drop down-->
+        <label>Alert Severity</label>                             <!--This is what will show on the dashboard above the input field-->
+        <choice value="*">All</choice>                            <!--This applies for all "choice values" This specific line sets the value to * when the user selects the "All" field in the drop down-->
+        <choice value="info">Info</choice>
+        <choice value="low">Low</choice>
+        <choice value="medium">Medium</choice>
+        <choice value="high">High</choice>
+        <choice value="critical">Critical</choice>
+        <default>*</default>                                      <!--This is what your token will initially store without user interaction-->
+        <valuePrefix>alert_severity="</valuePrefix>               <!--This is what will go before the token value in your queries when using $t_alert_title$-->
+        <valueSuffix>"</valueSuffix>                              <!--This is what will go after the token value in your queries when using $t_alert_title$-->
+        <delimiter> OR </delimiter>                               <!--This allows user to select multiple fields by adding an OR between them when the token is used-->
+      </input>
+      <table>
+        <title>Count Hostname/Username All Alerts</title>
+        <search>
+          <query>
+            | from inputlookup:"all_conf_alerts_test.csv" 
+            | addinfo 
+            | eval Time=strptime(strftime(_time, "%m/%d/%Y:%H:%M:%S"), "%m/%d/%Y:%H:%M:%S")
+            | where Time&gt;=info_min_time and Time&lt;=info_max_time 
+            | search $t_src_ip$ $t_dst_ip$ $t_dest_hostname$ $t_src_hostname$ $t_src_username$ $t_alert_title$ $t_alert_severity$ $t_kill_chain$ 
+            | stats count by hostname  
+          </query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+        <option name="refresh.display">progressbar</option>
+      </table>
+      <table>
+        <title>All Alerts</title>
+        <search>
+          <query>
+            | from inputlookup:"all_conf_alerts_test.csv" 
+            | addinfo 
+            | eval Time=strptime(strftime(_time, "%m/%d/%Y:%H:%M:%S"), "%m/%d/%Y:%H:%M:%S")
+            | where Time&gt;=info_min_time and Time&lt;=info_max_time 
+            | search $t_src_ip$ $t_dst_ip$ $t_dest_hostname$ $t_src_hostname$ $t_src_username$ $t_alert_title$ $t_alert_severity$ $t_kill_chain$ 
+            | table _time alert_title kill_chain alert_severity dest_domain src dest hostname username  
+          </query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+        <option name="refresh.display">progressbar</option>
+      </table>
+      <table>
+        <title>Firewall Traffic</title>
+        <search>
+          <query> 
+            index=pan_logs $t_src_ip$ $t_dst_ip$
+            | rename dest_hostname as dest_domain, user as username
+            | search $t_dest_hostname$ 
+            | eval date = strftime(_time, "%Y-%m-%d") 
+            | lookup dhcp.csv src date OUTPUT hostname
+            | search $t_src_username$
+            | eval hostname=mvindex(hostname,0) 
+            | search $t_src_hostname$ 
+            | fillnull value=unknown
+            | table  _time, hostname, username, action, src, src_port, dest, dest_port, dest_domain, app, bytes, url, http_referrer 
+          </query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+      </table>
+    </panel>
+  </row>
+</form>
