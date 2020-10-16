@@ -1,4 +1,5 @@
-This page will explain our three enrichment files and how we made them. These should be saved as alerts with the alert action "output results to lookup" with append selected
+This page will explain our two enrichment files and how we made them. They are the hostname_username mapping lookup file and the DHCP lookup file. 
+These should be saved as alerts with the alert action "output results to lookup" with append selected
 
 
 hostname_username.csv 
