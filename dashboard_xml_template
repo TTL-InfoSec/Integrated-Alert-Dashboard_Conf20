@@ -35,54 +35,39 @@ along with what you can modify for your needs.
         <delimiter> OR </delimiter>                               <!--This allows user to select multiple fields by adding an OR between them when the token is used-->
       </input>
       <table>
-        <title>Count Hostname/Username All Alerts</title>
+        <title>Count Hostname/Username All Alerts</title>                                      <!--This will be the title of the panel that shows the below query-->
         <search>
           <query>
-            | from inputlookup:"all_conf_alerts_test.csv" 
-            | addinfo 
-            | eval Time=strptime(strftime(_time, "%m/%d/%Y:%H:%M:%S"), "%m/%d/%Y:%H:%M:%S")
-            | where Time&gt;=info_min_time and Time&lt;=info_max_time 
-            | search $t_src_ip$ $t_dst_ip$ $t_dest_hostname$ $t_src_hostname$ $t_src_username$ $t_alert_title$ $t_alert_severity$ $t_kill_chain$ 
-            | stats count by hostname  
+            | from inputlookup:"all_conf_alerts_test.csv"                                      <!--This is similiar to using index= , but for csvs-->
+            | addinfo                                                                          <!--https://docs.splunk.com/Documentation/Splunk/8.0.6/Searchreference/addinfo-->
+            | eval Time=strptime(strftime(_time, "%m/%d/%Y:%H:%M:%S"), "%m/%d/%Y:%H:%M:%S")    <!--This standardizes the time to remove any possible nanoseconds and then converts it to epoch time-->
+            | where Time&gt;=info_min_time and Time&lt;=info_max_time                          <!--This is the final step allowing us to search over time in a csv. &gt;== > &lt; == < -->
+            | search $t_src_ip$ $t_dst_ip$ $t_dest_hostname$ $t_src_hostname$                  <!--Define what you want to search over here. In this case it's all of these tokens-->
+              $t_src_username$ $t_alert_title$ $t_alert_severity$ $t_kill_chain$ 
+            | stats count by hostname                                                          <!--This will simple show us the number of alerts per host-->
           </query>
-          <earliest>$time.earliest$</earliest>
-          <latest>$time.latest$</latest>
+          <earliest>$time.earliest$</earliest>                                                 <!--This sets the query to use the time parameters earliest time set on the dashboard-->
+          <latest>$time.latest$</latest>                                                       <!--This sets the query to use the time parameters latest time set on the dashboard-->
         </search>
-        <option name="refresh.display">progressbar</option>
+        <option name="refresh.display">progressbar</option>                                    <!--This sets the panel to show a progress bar while the query runs-->
       </table>
       <table>
-        <title>All Alerts</title>
-        <search>
-          <query>
-            | from inputlookup:"all_conf_alerts_test.csv" 
-            | addinfo 
-            | eval Time=strptime(strftime(_time, "%m/%d/%Y:%H:%M:%S"), "%m/%d/%Y:%H:%M:%S")
-            | where Time&gt;=info_min_time and Time&lt;=info_max_time 
-            | search $t_src_ip$ $t_dst_ip$ $t_dest_hostname$ $t_src_hostname$ $t_src_username$ $t_alert_title$ $t_alert_severity$ $t_kill_chain$ 
-            | table _time alert_title kill_chain alert_severity dest_domain src dest hostname username  
-          </query>
-          <earliest>$time.earliest$</earliest>
-          <latest>$time.latest$</latest>
-        </search>
-        <option name="refresh.display">progressbar</option>
-      </table>
-      <table>
-        <title>Firewall Traffic</title>
+        <title>Firewall Traffic</title>                                                        <!--This will be the title of the panel that shows the below query-->
         <search>
           <query> 
-            index=pan_logs $t_src_ip$ $t_dst_ip$
-            | rename dest_hostname as dest_domain, user as username
-            | search $t_dest_hostname$ 
-            | eval date = strftime(_time, "%Y-%m-%d") 
-            | lookup dhcp.csv src date OUTPUT hostname
-            | search $t_src_username$
-            | eval hostname=mvindex(hostname,0) 
-            | search $t_src_hostname$ 
-            | fillnull value=unknown
-            | table  _time, hostname, username, action, src, src_port, dest, dest_port, dest_domain, app, bytes, url, http_referrer 
+            index=pan_logs $t_src_ip$ $t_dst_ip$                                               <!--Here we want to search over as many fields as we can to reduce the number of logs we run additional commands over-->
+            | rename dest_hostname as dest_domain, user as username                            <!--This is where you want to rename any fields you may need to rename to use the field names in the standardized context-->
+            | search $t_dest_hostname$ $t_src_username$                                        <!--Here we want to search over our renamed fields again reducing the log count as much as we can-->
+            | eval date = strftime(_time, "%Y-%m-%d")                                          <!--This gives us the date based on the time so we can use to to correctly enrich our data-->
+            | lookup dhcp.csv src date OUTPUT hostname                                         <!--Some of our FW logs do not give hostname so this provides the hostname based on our enrichment file-->
+            | eval hostname=mvindex(hostname,0)                                                <!--This ensures that we only have on entry this may not work if you give out leases less than 24h-->
+            | search $t_src_hostname$                                                          <!--Now we can search over our last relevant field for this-->
+            | fillnull value=unknown                                                           <!--This makes things pretty by making empty fields say unknown-->
+            | table  _time, hostname, username, action, src, src_port, dest, dest_port,        <!--Whatever data you want from your logs can be placed here-->
+              dest_domain, app, bytes, url, http_referrer 
           </query>
-          <earliest>$time.earliest$</earliest>
-          <latest>$time.latest$</latest>
+          <earliest>$time.earliest$</earliest>                                                 <!--This sets the query to use the time parameters earliest time set on the dashboard-->
+          <latest>$time.latest$</latest>                                                       <!--This sets the query to use the time parameters latest time set on the dashboard-->
         </search>
       </table>
     </panel>
