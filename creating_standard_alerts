@@ -1,4 +1,5 @@
-This contains all the unique commands we used across all indexes and does not form a recommended starting point. Please read the comments and pick the lines needed for your usecase
+This contains all the unique commands we used across all indexes and does not form a recommended starting point. Please read the comments and pick the lines needed for your usecase. 
+These should be saved as alerts with the alert action "output results to lookup" with append selected
 
 | eval alert_title="PA_Test".                                #Set your alert name here
 | eval kill_chain="other".                                   #Set your kill_chain here
