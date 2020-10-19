@@ -8,9 +8,9 @@ hostname_username.csv
 
 Below is from one of the dhcp sources we use. Both of our csvs use this format, but different renames. For these we search over the entire day every 10 minutes
 
-| rename dest as src, dest_nt_host as hostname            <--We need to standardize our fields-->
-| eval date = strftime(_time, "%Y-%m-%d")                 <--We nned to ensure our final results have a date for future use. This format needs to be the same everywhere-->
-| lookup hostname_username.csv hostname OUTPUT username   <--These fields do not have username, but they do have hostname so we can get the hostname from this-->
-| lookup dhcp.csv date hostname src OUTPUT date AS flag   <--This grabs information in the current CSV based on date hostname src cells that do not have an entry will return null-->
-| where isnull(flag)                                      <--Ensure that an entry has not already been written today to exclude filling up the file-->
-| table date hostname username src                        <--These are the fields we want to write to the csv-->
+| rename dest as src, dest_nt_host as hostname            `comment("We need to standardize our fields")`
+| eval date = strftime(_time, "%Y-%m-%d")                 `comment("We nned to ensure our final results have a date for future use. This format needs to be the same everywhere")`
+| lookup hostname_username.csv hostname OUTPUT username   `comment("These fields do not have username, but they do have hostname so we can get the hostname from this")`
+| lookup dhcp.csv date hostname src OUTPUT date AS flag   `comment("This grabs information in the current CSV based on date hostname src cells that do not have an entry will return null")`
+| where isnull(flag)                                      `comment("Ensure that an entry has not already been written today to exclude filling up the file")`
+| table date hostname username src                        `comment("These are the fields we want to write to the csv")`
