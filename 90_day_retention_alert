@@ -1,0 +1,9 @@
+This should be saved as an alert.
+
+| inputlookup test_alert.csv                                                                              `comment("Do a lookup on the csv you want to remove data from")`
+| eval TIME=strptime(strftime(_time, "%m/%d/%Y"), "%m/%d/%Y")                                             `comment("This will remove any nanoseconds from the time field and convert it to epoch")`
+| eval dif=(now()-TIME)/86400                                                                             `comment("This will evaluate the epoch number for days between today and the time of the activity")`
+| where dif <= 90                                                                                         `comment("Only things less than 90 days will remain")`
+| fields _time, alert_title, kill_chain, alert_severity, hostname, username, action, date, src, src_port, 
+  dest, dest_port, dest_domain, app, bytes, url, http_referrer                                            `comment("Ensures you have the standardized context for the index here")`
+| outputlookup test_cb_defense.csv                                                                        `comment("This will overwrite the current csv with the new data")`
