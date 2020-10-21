@@ -1,0 +1,10 @@
+This should be saved as an alert with the alert action "output results to lookup" with append selected
+
+| rest /servicesNS/-/search/data/lookup-table-files splunk_server="local"                          `comment("This allows access to all the local lookup files")`
+| search title="test_*.csv"                                                                        `comment("Using a standadized leading term is important here this will pull all the csvs starting with test_")`
+| map search="|inputlookup $title$"                                                                `comment("This does a lookup on the titles matched above")`
+| fields _time alert_title kill_chain alert_severity dest_domain src dest hostname username        `comment("Here we grab all of our standized fields")`
+| addinfo                                                                                          `comment("This adds in the fields info_min_time and inf_max_time")` 
+| eval Time=strptime(strftime(_time, "%H:%M:%S"), "%H:%M:%S")                                      `comment("This strips time down to the just hour minute second. (Remove nano seconds) and then converts it back to epoch")`
+| where Time>=info_min_time and Time<=info_max_time                                                `comment("Allows you to only return results in your time frame set in the alert")`
+| table _time alert_title kill_chain alert_severity dest_domain src dest hostname username         `comment("This is what will be saved to the csv")`
